@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Drummer Bot</title>
+    <link rel="stylesheet" type="text/css" href="stylesheets/style.css">
+</head>
+<body>
+<script src="javascripts/script.js"></script>
+<script>
+
+    var currentBeatTempo = 60;
+
+    window.onload = onWindowOnLoad;
+
+    function onWindowOnLoad() {
+        createInputUISegmentsForUser();
+        createPlotFromInput();
+        makeLoadButtonVisible(false);
+    }
+
+
+    function createInputUISegmentsForUser() {
+        var inputFromUser = document.getElementById("inputFromUser");
+
+        inputFromUser.appendChild(createADivisionForCanvasAndTextDisplay("Snare ", 0));
+        inputFromUser.appendChild(createADivisionForCanvasAndTextDisplay("Floor Tom Tom ", 1));
+        inputFromUser.appendChild(createADivisionForCanvasAndTextDisplay("High Hat ", 2));
+
+
+        function createADivisionForCanvasAndTextDisplay(drumName, drumNumber) {
+            var paragraphForDrumName = document.createElement("p");
+            var paragraphForCoordinates = document.createElement("p");
+            var onePixelDenotesHowManyMilliSeconds = 1;
+            paragraphForDrumName.innerHTML = drumName + " [Every bar denotes: " + onePixelDenotesHowManyMilliSeconds * 100 + " milliseconds ]";
+            var canvasWidth = 1310;
+            var canvas = createACanvas(drumNumber, 300, canvasWidth, paragraphForCoordinates, onePixelDenotesHowManyMilliSeconds);
+            var division = document.createElement("div");
+            division.appendChild(paragraphForDrumName);
+            division.appendChild(paragraphForCoordinates);
+            division.appendChild(canvas);
+            return division;
+        }
+
+
+        function createACanvas(canvasId, height, width, paragraph, onePixelDenotesHowManyMilliSeconds) {
+            var canvas = document.createElement("canvas");
+            canvas.setAttribute("height", height);
+            canvas.setAttribute("width", width);
+            canvas.setAttribute("id", "inputFromUser" + canvasId);
+            drawMarksOnAxis(canvas);
+
+            canvas.addEventListener('click', function (evt) {
+                var mousePosition = getMousePosition(canvas, evt);
+                drawOnCanvas(canvas, mousePosition, canvasId);
+            }, false);
+
+            canvas.addEventListener('mousemove', function (evt) {
+                var mousePosition = getMousePosition(canvas, evt);
+                var amplitude = Math.floor((1 - mousePosition.y / height) * 100);
+                var timeFrame = mousePosition.x * onePixelDenotesHowManyMilliSeconds;
+                paragraph.innerHTML = " (time in millisecond  =" + timeFrame + " amplitude =" + amplitude + ") ";
+                var tooltip = document.querySelectorAll('#tooltipForCoordinates');
+                document.getElementById("tooltipForCoordinates").innerHTML="( " + timeFrame + " , " + amplitude +" )";
+
+                tooltip[0].style.left = evt.pageX + 'px';
+                tooltip[0].style.top = evt.pageY + 'px';
+
+            }, false);
+
+
+            function drawOnCanvas(canvas, mousePosition, canvasId) {
+                var context = canvas.getContext("2d");
+                context.beginPath();
+                context.moveTo(mousePosition.x, mousePosition.y);
+                context.lineTo(mousePosition.x, canvas.height);
+                context.lineWidth = 5;
+                context.strokeStyle = "#000000";
+                var amplitude = Math.floor((1 - mousePosition.y / height) * 100);
+                var timeFrame = mousePosition.x * onePixelDenotesHowManyMilliSeconds;
+
+                if (isBeatAtThatTimeFrameAlreadyExisting(timeFrame, canvasId)) {
+                    deleteBeatSequenceAtThatTimeFrame(timeFrame, canvasId);
+                    refreshTheViewOnCanvas(canvas, canvasId);
+                }
+                else {
+                    saveToBeatSequenceArray(timeFrame, amplitude, canvasId);
+                    context.stroke();
+                }
+            }
+
+            function getMousePosition(canvas, evt) {
+                var rect = canvas.getBoundingClientRect();
+                return {
+                    x: evt.clientX - rect.left,
+                    y: evt.clientY - rect.top
+                };
+            }
+
+
+            return canvas;
+        }
+    }
+
+    function refreshTheViewOnCanvas(canvas, canvasId) {
+
+        var context = canvas.getContext("2d");
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        drawMarksOnAxis(canvas);
+        context.lineWidth = 5;
+        context.strokeStyle = "#000000";
+
+
+        for (var inputBeatsCounter = 0; inputBeatsCounter < inputBeatSequencesFromUser.length; inputBeatsCounter++) {
+
+            var drumIndex = 2;
+            if (inputBeatSequencesFromUser[inputBeatsCounter][drumIndex] == canvasId) {
+                var currentBeatTime = inputBeatSequencesFromUser[inputBeatsCounter][0];
+                var currentBeatAmplitude = inputBeatSequencesFromUser[inputBeatsCounter][1];
+                context.beginPath();
+                context.moveTo(currentBeatTime, getCoordinateOnYAxisAccordingToAmplitude(currentBeatAmplitude));
+                context.lineTo(currentBeatTime, canvas.height);
+                context.stroke();
+            }
+        }
+
+        function getCoordinateOnYAxisAccordingToAmplitude(amplitude) {
+            return (1 - (amplitude / 100)) * canvas.height;
+        }
+    }
+
+    function drawMarksOnAxis(canvas) {
+        var context = canvas.getContext("2d");
+        var numberOfSecondsInAMinute = 60;
+        var numberOfEqualPartsOfABeatFromBPM = 4;
+        var timeIntervalForAxis = Math.ceil((( numberOfSecondsInAMinute/currentBeatTempo) * 1000)/ numberOfEqualPartsOfABeatFromBPM);
+        var loopCounter = 0
+        for (var counter = 0; counter <= canvas.width; counter += timeIntervalForAxis) {
+            context.beginPath();
+            context.moveTo(counter, canvas.height);
+            context.lineTo(counter, 0);
+
+            if(loopCounter%4 == 0){
+                context.lineWidth = 1;
+                context.strokeStyle = "#a36cef";
+            }
+            else{
+                context.lineWidth = 0.25;
+                context.strokeStyle = "#ff0000";
+            }
+            loopCounter++;
+            context.stroke();
+        }
+    }
+
+    function setUIBasedOnLoadedBeats() {
+        createPlotFromInput();
+    }
+
+    function createInputTextBoxForNumberOfTimesToRepeatBeatSequence(beatSequenceId) {
+        var inputTextBoxToRepeatBeatSequences = document.createElement('input');
+        inputTextBoxToRepeatBeatSequences.type = "number";
+        inputTextBoxToRepeatBeatSequences.id = "textBoxForCompilingBeatSequences" + beatSequenceId;
+        inputTextBoxToRepeatBeatSequences.style = "width: 90px";
+        inputTextBoxToRepeatBeatSequences.setAttribute("counter", beatSequenceId);
+        inputTextBoxToRepeatBeatSequences.value = 1;
+        return inputTextBoxToRepeatBeatSequences;
+    }
+
+
+    function createOptionForSelectBox(value, text) {
+        var optionOne = document.createElement('option');
+        optionOne.value = value;
+        optionOne.text = text;
+        return optionOne;
+    }
+
+
+    function createPlotFromInput() {
+        var snareDrumId = 0;
+        var floorTomTomDrumId = 1;
+        var highHatDrumId = 2;
+        var snareCanvas = document.getElementById("inputFromUser" + snareDrumId);
+        var floorTomTomCanvas = document.getElementById("inputFromUser" + floorTomTomDrumId);
+        var highHatCanvas = document.getElementById("inputFromUser" + highHatDrumId);
+
+
+        var snareCanvasContext = snareCanvas.getContext("2d");
+        var floorTomTomCanvasContext = floorTomTomCanvas.getContext("2d");
+        var highHatCanvasContext = highHatCanvas.getContext("2d");
+
+        snareCanvasContext.beginPath();
+        floorTomTomCanvasContext.beginPath();
+        highHatCanvasContext.beginPath();
+
+        snareCanvasContext.clearRect(0, 0, snareCanvas.width, snareCanvas.height);
+        floorTomTomCanvasContext.clearRect(0, 0, floorTomTomCanvas.width, floorTomTomCanvas.height);
+        highHatCanvasContext.clearRect(0, 0, highHatCanvas.width, highHatCanvas.height);
+
+
+        drawMarksOnAxis(snareCanvas);
+        drawMarksOnAxis(floorTomTomCanvas);
+        drawMarksOnAxis(highHatCanvas);
+        var currentTimeOfBeat = 0;
+
+        inputBeatSequencesFromUser.length = 0;
+        for (var counter = 0; counter < numberOfSequencesInBeat; counter++) {
+            currentTimeOfBeat += timeArray[counter];
+            inputBeatSequencesFromUser[counter] = [currentTimeOfBeat, amplitudeArray[counter], drumArray[counter]];
+            drawStrokeOnCanvas(drumArray[counter], currentTimeOfBeat);
+        }
+
+        function drawStrokeOnCanvas(canvasId, currentTimeOfBeat) {
+            var canvas = document.getElementById("inputFromUser" + canvasId);
+            var context = canvas.getContext("2d");
+            context.beginPath();
+
+            var coordinateOnYAxisAccordingToAmplitude = (1 - (amplitudeArray[counter] / 100)) * canvas.height;
+
+            context.moveTo(currentTimeOfBeat, coordinateOnYAxisAccordingToAmplitude);
+            context.lineTo(currentTimeOfBeat, canvas.height);
+            context.lineWidth = 5;
+            context.strokeStyle = "#000000";
+            context.stroke();
+
+        }
+
+    }
+
+    function inflateDropDownForBeatsNames(namesOfBeats, idOfSelectBoxToBeInflated) {
+        var selectBoxForUploadedBeats = document.getElementById(idOfSelectBoxToBeInflated);
+        while (selectBoxForUploadedBeats.hasChildNodes()) {
+            selectBoxForUploadedBeats.removeChild(selectBoxForUploadedBeats.lastChild);
+        }
+        for (var beatCounter = 0; beatCounter < namesOfBeats.length; beatCounter++) {
+            var option = createOptionForSelectBox(namesOfBeats[beatCounter], namesOfBeats[beatCounter]);
+            selectBoxForUploadedBeats.appendChild(option);
+        }
+    }
+
+    function loadBeatSequenceFromDatabase() {
+        var nameOfBeatToLoad = document.getElementById("uploadedBeats").value;
+        requestBeatSequenceForBeatName(nameOfBeatToLoad);
+    }
+
+    function deleteBeatSequenceFromDatabase() {
+        var nameOfBeatToLoad = document.getElementById("uploadedBeats").value;
+        deleteBeatSequence(nameOfBeatToLoad);
+    }
+
+    function getInputNumberFromTextBox(id) {
+        return document.getElementById(id).value;
+    }
+
+    function createUIToAddMultipleBeatSequences(beatSequenceId) {
+        var sequenceDiv = document.createElement('div');
+        sequenceDiv.id = "sequenceDiv" + beatSequenceId;
+        sequenceDiv.style = "width: 500px ";
+
+        var inputTextBoxForNumberOfTimesToRepeatBeatSequence = createInputTextBoxForNumberOfTimesToRepeatBeatSequence(beatSequenceId);
+
+        var selectBox = document.createElement('select');
+        selectBox.id = "selectBoxForBeatSequenceNames" + beatSequenceId;
+        selectBox.setAttribute("counter", beatSequenceId);
+
+        document.getElementById("compileTrack").appendChild(sequenceDiv);
+
+        sequenceDiv.appendChild(selectBox);
+        sequenceDiv.appendChild(inputTextBoxForNumberOfTimesToRepeatBeatSequence);
+
+        inflateDropDownForBeatsNames(getBeatSequenceNames(), selectBox.id);
+    }
+
+    function emptyCompileTrackDivision() {
+        while (document.getElementById("compileTrack").hasChildNodes()) {
+            document.getElementById("compileTrack").removeChild(document.getElementById("compileTrack").lastChild);
+        }
+    }
+
+    function generateInputFieldsToStitchTheBeatSequences() {
+        var numberOfDifferentBeatSequences = getInputNumberFromTextBox("inputNumberOfBeatSequencesToStitch");
+        emptyCompileTrackDivision();
+        for (var beatSequenceCounter = 0; beatSequenceCounter < numberOfDifferentBeatSequences; beatSequenceCounter++) {
+            createUIToAddMultipleBeatSequences(beatSequenceCounter);
+        }
+    }
+
+    function getBeatNameGivenByUser(selectBoxId) {
+        return document.getElementById(selectBoxId).value;
+    }
+
+    function makeLoadButtonVisible(isVisible) {
+        if (isVisible) {
+            document.getElementById("loadCompiledBeatSequence").style.visibility = "visible";
+            return;
+        }
+        document.getElementById("loadCompiledBeatSequence").style.visibility = "hidden";
+    }
+    function changeWidthOfCanvas(){
+        var newWidthOfCanvas=document.getElementById("widthOfCanvas").value;
+        var snareDrumId = 0;
+        var floorTomTomDrumId = 1;
+        var highHatDrumId = 2;
+        var snareCanvas = document.getElementById("inputFromUser" + snareDrumId);
+        var floorTomTomCanvas = document.getElementById("inputFromUser" + floorTomTomDrumId);
+        var highHatCanvas = document.getElementById("inputFromUser" + highHatDrumId);
+        snareCanvas.setAttribute("width", newWidthOfCanvas);
+        floorTomTomCanvas.setAttribute("width", newWidthOfCanvas);
+        highHatCanvas.setAttribute("width", newWidthOfCanvas);
+        refreshTheViewOnCanvas(snareCanvas, snareDrumId);
+        refreshTheViewOnCanvas(floorTomTomCanvas, floorTomTomDrumId);
+        refreshTheViewOnCanvas(highHatCanvas, highHatDrumId);
+    }
+    
+    function changeCurrentTrackTempo() {
+        var currentTempo = document.getElementById("currentTempo").value;
+        currentBeatTempo = currentTempo;
+    }
+
+    function refreshAllCanvases() {
+        var snareDrumId = 0;
+        var floorTomTomDrumId = 1;
+        var highHatDrumId = 2;
+        var snareCanvas = document.getElementById("inputFromUser" + snareDrumId);
+        var floorTomTomCanvas = document.getElementById("inputFromUser" + floorTomTomDrumId);
+        var highHatCanvas = document.getElementById("inputFromUser" + highHatDrumId);
+        refreshTheViewOnCanvas(snareCanvas, snareDrumId);
+        refreshTheViewOnCanvas(floorTomTomCanvas, floorTomTomDrumId);
+        refreshTheViewOnCanvas(highHatCanvas, highHatDrumId);
+    }
+
+    function changeTempoOfTrack() {
+        var desiredTempo = document.getElementById("desiredTempo").value;
+        var ratioOfChangeInTempo = currentBeatTempo/desiredTempo;
+        currentBeatTempo = desiredTempo;
+
+        for(var counter=0; counter<inputBeatSequencesFromUser.length; counter++)
+        {
+            var timeIndex = 0;
+            inputBeatSequencesFromUser[counter][timeIndex] = Math.ceil(inputBeatSequencesFromUser[counter][timeIndex] * ratioOfChangeInTempo);
+        }
+        refreshAllCanvases();
+        document.getElementById("currentTempo").setAttribute("value", currentBeatTempo+"");
+        document.getElementById("desiredTempo").value = "";
+
+    }
+    
+
+    
+
+
+</script>
+<div id="headBar">
+    Drummer Bot
+</div>
+<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+
+
+<br>
+<br>
+Enter timeFrame <input type="number" value="1310" min="1000" id="widthOfCanvas" onchange="changeWidthOfCanvas()">
+<div id="inputFromUser" > <span id="tooltipForCoordinates" ></span></div>
+
+<br><br>
+
+
+<button class="depth" type="button" onclick="startStopActuator()">&#x266b;&#x2718;</button>
+&nbsp;&nbsp;
+<button class="depth" type="button" onclick="resetBeatStream()">&#x21ba;</button>
+&nbsp;&nbsp;
+<button class="depth" type="button" onclick="uploadBeat()">&#8593;</button>
+<br><br><br><br>
+Current beat Tempo <input id="currentTempo" readonly="true" value="60" onchange="changeCurrentTrackTempo()"> Desired beat Tempo <input id="desiredTempo"> <button onclick="changeTempoOfTrack()">Change Tempo</button>
+
+<br><br><br><br>
+Enter the name of the beat you want to save: <input id="nameOfBeatSequence" type="text" style="width: 200px">
+<button onclick="saveBeatSequenceToDatabase()">Save</button>
+
+<br><br>
+<select id="uploadedBeats"></select>
+<button onclick="loadBeatSequenceFromDatabase()">Load</button>
+<button onclick="deleteBeatSequenceFromDatabase()">Delete</button>
+<br><br><br><br><br>
+
+
+Enter the number of different beat sequences you want to stitch:
+<input type="number" id="inputNumberOfBeatSequencesToStitch"
+       onchange="generateInputFieldsToStitchTheBeatSequences()">
+<button onclick="compileBeatSequences()">Compile track</button>
+<button id="loadCompiledBeatSequence" onclick="loadCompiledBeatSequences()">Load track</button>
+
+<div id="compileTrack">
+</div>
+
+<br><br><br><br><br><br><br>
+
+<div id="receivedMessage"></div>
+<div id="titleBar"></div>
+
+
+</body>
+</html>

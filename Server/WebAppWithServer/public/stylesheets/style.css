@@ -1,0 +1,25 @@
+body {
+    background: lightskyblue;
+    padding: 0px;
+    width: 100%;
+    font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+}
+
+a {
+    color: #00B7FF;
+}
+
+button {
+    height: 70px;
+    width: 300px;
+    font-size: 35px;
+    font-family: Papyrus, serif;
+    background-color: palegoldenrod;
+    border-radius: 100%;
+}
+
+#headBar {
+    height: 100px;
+    font-family: Papyrus, serif;
+    font-size: 70px;
+}

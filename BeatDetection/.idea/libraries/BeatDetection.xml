@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="BeatDetection">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/JfreeChartDependencies/jcommon-1.0.22-junit.jar!/" />
+      <root url="jar://$PROJECT_DIR$/JfreeChartDependencies/jcommon-1.0.22.jar!/" />
+      <root url="jar://$PROJECT_DIR$/JfreeChartDependencies/jcommon-xml-1.0.22.jar!/" />
+      <root url="jar://$PROJECT_DIR$/JfreeChartDependencies/junit.jar!/" />
+      <root url="jar://$PROJECT_DIR$/JfreeChartDependencies/jfreechart-1.0.18.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

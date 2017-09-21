@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<body>
+<script src="javascripts/script.js"></script>
+<script>
+
+    window.onload = onWindowOnLoad;
+
+    function onWindowOnLoad() {
+        document.getElementById("inputNumberOfSequences").value = numberOfSequencesInBeat;
+        createNewUIBeatElements();
+        createPlotFromInput();
+    }
+
+    function onChangeInputTextAmplitude(e) {
+        var counter = e.target.getAttribute("counter");
+        var inputBeatAmplitude = parseInt(document.getElementById("textBoxForAmplitude" + counter).value);
+        amplitudeArray[counter] = inputBeatAmplitude;
+        document.getElementById("rangeBarForAmplitude" + counter).value = inputBeatAmplitude;
+        createPlotFromInput();
+    }
+
+    function onChangeInputRangeBarAmplitude(e) {
+        var counter = e.target.getAttribute("counter");
+        var inputBeatAmplitude = parseInt(document.getElementById("rangeBarForAmplitude" + counter).value);
+        amplitudeArray[counter] = inputBeatAmplitude;
+        document.getElementById("textBoxForAmplitude" + counter).value = inputBeatAmplitude;
+        createPlotFromInput();
+    }
+    function onChangeDrumNumber(e) {
+        var counter = e.target.getAttribute("counter");
+        drumArray[counter] = parseInt(document.getElementById("selectBox" + counter).value);
+        createPlotFromInput();
+    }
+
+    function onChangeInputTextTimeInterval(e) {
+        var counter = e.target.getAttribute("counter");
+        timeArray[counter] = parseInt(document.getElementById("textBoxForTimeInterval" + counter).value);
+        createPlotFromInput();
+    }
+
+    function setDefaultDrumNumberInSelectionBox(containerId, optionOne, optionTwo) {
+        if (drumArray[containerId] == 0) {
+            optionOne.selected = "selected";
+        }
+        else {
+            optionTwo.selected = "selected";
+        }
+    }
+    function createInputRangeBarAndSetDefaultValueForAmplitude(containerId) {
+        var inputRangeBarForAmplitude = document.createElement('input');
+        inputRangeBarForAmplitude.type = "range";
+        inputRangeBarForAmplitude.id = "rangeBarForAmplitude" + containerId;
+        inputRangeBarForAmplitude.setAttribute("orient", "vertical");
+        inputRangeBarForAmplitude.setAttribute("counter", containerId);
+        inputRangeBarForAmplitude.value = amplitudeArray[containerId];
+        return inputRangeBarForAmplitude;
+    }
+    function createInputTextBoxAndSetDefaultValueForAmplitude(containerId) {
+        var inputTextBoxForAmplitude = document.createElement('input');
+        inputTextBoxForAmplitude.type = "number";
+        inputTextBoxForAmplitude.id = "textBoxForAmplitude" + containerId;
+        inputTextBoxForAmplitude.style = "width: 90px";
+        inputTextBoxForAmplitude.setAttribute("counter", containerId);
+        inputTextBoxForAmplitude.value = amplitudeArray[containerId];
+        return inputTextBoxForAmplitude;
+    }
+
+    function createInputTextBoxAndSetDefaultValueForTimeInterval(containerId) {
+        var inputTextBoxForTimeInterval = document.createElement('input');
+        inputTextBoxForTimeInterval.type = "number";
+        inputTextBoxForTimeInterval.id = "textBoxForTimeInterval" + containerId;
+        inputTextBoxForTimeInterval.style = "width: 90px";
+        inputTextBoxForTimeInterval.setAttribute("counter", containerId);
+        inputTextBoxForTimeInterval.value = timeArray[containerId];
+        return inputTextBoxForTimeInterval;
+    }
+
+
+    function createOptionForSelectBox(value, text) {
+        var optionOne = document.createElement('option');
+        optionOne.value = value;
+        optionOne.text = text;
+        return optionOne;
+    }
+
+
+
+    function createNewUIBeatElement(containerId) {
+        var beatDiv = document.createElement('div');
+        beatDiv.id = "beatDiv" + containerId;
+        beatDiv.style = "width: 90px ";
+
+        var inputTextBoxForTimeInterval = createInputTextBoxAndSetDefaultValueForTimeInterval(containerId);
+        var inputRangeBarForAmplitude = createInputRangeBarAndSetDefaultValueForAmplitude(containerId);
+        var inputTextBoxForAmplitude = createInputTextBoxAndSetDefaultValueForAmplitude(containerId);
+
+        var selectBox = document.createElement('select');
+        selectBox.id = "selectBox" + containerId;
+        selectBox.setAttribute("counter", containerId);
+        var optionOne = createOptionForSelectBox(0, "Drum One");
+        var optionTwo = createOptionForSelectBox(1, "Drum Two");
+
+        selectBox.onchange = onChangeDrumNumber;
+
+        setDefaultDrumNumberInSelectionBox(containerId, optionOne, optionTwo);
+
+        inputRangeBarForAmplitude.onchange = onChangeInputRangeBarAmplitude;
+        inputTextBoxForAmplitude.onchange = onChangeInputTextAmplitude;
+        inputTextBoxForTimeInterval.onchange = onChangeInputTextTimeInterval;
+
+        document.getElementById("beats").appendChild(beatDiv);
+        beatDiv.appendChild(inputTextBoxForTimeInterval);
+        beatDiv.appendChild(inputRangeBarForAmplitude);
+        beatDiv.appendChild(inputTextBoxForAmplitude);
+
+        beatDiv.appendChild(selectBox);
+        selectBox.appendChild(optionOne);
+        selectBox.appendChild(optionTwo);
+    }
+
+
+    function createNewUIBeatElements() {
+        document.getElementById("beats").innerHTML = "";
+        for (var counter = 0; counter < numberOfSequencesInBeat; counter++) {
+            createNewUIBeatElement(counter);
+        }
+    }
+
+    function createUIForNumberOfSequence() {
+        numberOfSequencesInBeat = document.getElementById("inputNumberOfSequences").value;
+        createNewUIBeatElements();
+        createPlotFromInput();
+    }
+    function createPlotFromInput(){
+        var canvas =document.getElementById("plottingCanvas");
+
+        var canvasHeight=canvas.height;
+        var canvasWidth=canvas.width;
+        var widthPaddingInPercentage=5;
+        var heightPaddingInPercentage=10;
+        var beatFrameTimeInterval=getFrameTimeInterval();
+
+
+
+        var context = canvas.getContext("2d");
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.beginPath();
+
+        //////////////draw axis///////
+        context.moveTo(getPixelWidthFromTime(canvas,0,beatFrameTimeInterval,widthPaddingInPercentage),getPixelHeightFromAmplitude(canvas,0,heightPaddingInPercentage));
+        context.lineTo(getPixelWidthFromTime(canvas,beatFrameTimeInterval,beatFrameTimeInterval,widthPaddingInPercentage),getPixelHeightFromAmplitude(canvas,0,heightPaddingInPercentage));
+        context.lineWidth = 5;
+        context.strokeStyle = '#000000';
+        context.stroke();
+
+        ///////Draw timemarker///
+
+        for(var counter=0;counter<beatFrameTimeInterval;counter+=200){
+            context.beginPath();
+            context.moveTo(getPixelWidthFromTime(canvas,counter,beatFrameTimeInterval,widthPaddingInPercentage),getPixelHeightFromAmplitude(canvas,0,heightPaddingInPercentage));
+            context.lineTo(getPixelWidthFromTime(canvas,counter,beatFrameTimeInterval,widthPaddingInPercentage),(canvas.height*97)/100);
+
+            context.lineWidth = 2;
+            context.strokeStyle = '#000000';
+            context.stroke();
+        }
+
+        //////draw beat///
+        for(var counter=0;counter<numberOfSequencesInBeat;counter++){
+            context.beginPath();
+            context.moveTo(getPixelWidthFromTime(canvas,getTimeForBeatRelativeToFrame(counter),beatFrameTimeInterval,widthPaddingInPercentage),getPixelHeightFromAmplitude(canvas,0,heightPaddingInPercentage));
+            context.lineTo(getPixelWidthFromTime(canvas,getTimeForBeatRelativeToFrame(counter),beatFrameTimeInterval,widthPaddingInPercentage),getPixelHeightFromAmplitude(canvas,amplitudeArray[counter],heightPaddingInPercentage));
+            context.lineWidth = 10;
+            if(drumArray[counter]==0){
+                context.strokeStyle = '#ff0000';
+            }else{
+                context.strokeStyle = '#0000ff';
+            }
+                       context.stroke();
+        }
+
+    }
+    function getPixelWidthFromTime(canvas,time,frametime,widthpadding){
+               var canvasWidth=canvas.width;
+        var widthPaddingInPixel=widthpadding*canvasWidth/100;
+        return (widthPaddingInPixel+((canvasWidth-2*widthPaddingInPixel)*time)/frametime);
+    }
+    function getPixelHeightFromAmplitude(canvas,amplitude,heightPadding){
+        var canvasHeight=canvas.height;
+        var heightPaddingInPixel=heightPadding*canvasHeight/100;
+        return canvasHeight-heightPaddingInPixel-((amplitude*(canvasHeight-2*heightPaddingInPixel))/100);
+    }
+
+
+
+
+
+</script>
+<div id="headBar">
+    Drummer Bot
+</div>
+<div>
+    <canvas id="plottingCanvas" width="600" height="200" style="border:1px solid #000000;"/>
+</div>
+<div id="toolBar">
+    Select number of sequences: <input id="inputNumberOfSequences" type="number"
+                                       onchange="createUIForNumberOfSequence()">
+</div>
+<br><br>
+
+<div id="beats"></div>
+
+<br>
+<br>
+<Button onclick="startStopActuator()">Start/Stop</Button>
+<Button onclick="resetBeatStream()">Reset</Button>
+<Button onclick="uploadBeat()">Upload beat</Button>
+
+
+<br><br>
+<div id="receivedMessage"></div>
+<div id="titleBar"></div>
+</body>
+<head>
+    <meta charset="UTF-8">
+    <title>Drummer Bot</title>
+    <link rel="stylesheet" type="text/css" href="stylesheets/style.css">
+    <style type="text/css">
+        input[type=range][orient=vertical] {
+            writing-mode: bt-lr; /* IE */
+            -webkit-appearance: slider-vertical; /* WebKit */
+            width: 8px;
+            height: 175px;
+            padding: 0 20px;
+        }
+
+        #beats {
+            display: flex;
+        }
+
+    </style>
+</head>
+</html>

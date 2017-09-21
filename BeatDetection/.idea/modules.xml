@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/DrummerBotBeatDetection/DrummerBotBeatDetection.iml" filepath="$PROJECT_DIR$/DrummerBotBeatDetection/DrummerBotBeatDetection.iml" />
+      <module fileurl="file://$PROJECT_DIR$/jcommon-1.0.22/jcommon-1.0.22.iml" filepath="$PROJECT_DIR$/jcommon-1.0.22/jcommon-1.0.22.iml" />
+    </modules>
+  </component>
+</project>
